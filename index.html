@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherSketch | Technical Generator</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background-color: #f0f2f5; }
+        
+        /* Sidebar for Input */
+        #sidebar { width: 350px; background: #fff; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        h2 { color: #333; margin-top: 0; }
+        textarea { width: 100%; height: 200px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; font-family: monospace; resize: vertical; }
+        button { background: #0066cc; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0052a3; }
+        button.secondary { background: #444; margin-top: 5px; }
+
+        /* Main Viewing Area */
+        #main { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-image: radial-gradient(#ddd 1px, transparent 1px); background-size: 20px 20px; }
+        #canvas-container { background: white; border: 2px solid #333; box-shadow: 0 10px 20px rgba(0,0,0,0.2); padding: 20px; min-width: 400px; min-height: 500px; display: flex; align-items: center; justify-content: center; }
+        
+        /* Gallery (Saved Drawings) */
+        #gallery-section { margin-top: 20px; overflow-y: auto; flex-grow: 1; border-top: 1px solid #eee; padding-top: 10px; }
+        .saved-item { background: #eee; padding: 10px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; }
+        .saved-item:hover { background: #ddd; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>AetherSketch</h2>
+        <p style="font-size: 12px; color: #666;">Paste Silas's SVG Code below:</p>
+        <textarea id="inputCode" placeholder="<svg>...</svg>"></textarea>
+        <button onclick="renderDrawing()">Generate View</button>
+        <button class="secondary" onclick="saveToGallery()">Save to Project</button>
+        
+        <div id="gallery-section">
+            <h3>Project Gallery</h3>
+            <div id="gallery-list"></div>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="canvas-container">
+            <div id="drawing-output" style="color:#aaa;">Waiting for input...</div>
+        </div>
+    </div>
+
+    <script>
+        // Load saved drawings on startup
+        window.onload = function() { loadGallery(); };
+
+        function renderDrawing() {
+            const code = document.getElementById('inputCode').value;
+            // Clean the code to just get the SVG part if user pasted extra text
+            const start = code.indexOf('<svg');
+            const end = code.indexOf('</svg>') + 6;
+            
+            if (start !== -1 && end !== -1) {
+                const cleanSVG = code.substring(start, end);
+                document.getElementById('drawing-output').innerHTML = cleanSVG;
+            } else {
+                alert("Could not find valid SVG code. Ask Silas for the code again!");
+            }
+        }
+
+        function saveToGallery() {
+            const code = document.getElementById('inputCode').value;
+            const name = prompt("Name this drawing (e.g., V-101 Vessel):");
+            if (name && code) {
+                const drawing = { name: name, code: code, date: new Date().toLocaleDateString() };
+                
+                // Save to Browser LocalStorage (Free Database)
+                let gallery = JSON.parse(localStorage.getItem('aetherGallery') || '[]');
+                gallery.push(drawing);
+                localStorage.setItem('aetherGallery', JSON.stringify(gallery));
+                
+                loadGallery();
+            }
+        }
+
+        function loadGallery() {
+            const list = document.getElementById('gallery-list');
+            list.innerHTML = "";
+            const gallery = JSON.parse(localStorage.getItem('aetherGallery') || '[]');
+            
+            gallery.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'saved-item';
+                div.innerHTML = `<span>${item.name}</span> <small onclick="deleteItem(${index})">❌</small>`;
+                div.onclick = (e) => { 
+                    if(e.target.tagName !== 'SMALL') {
+                        document.getElementById('inputCode').value = item.code;
+                        renderDrawing();
+                    }
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function deleteItem(index) {
+            let gallery = JSON.parse(localStorage.getItem('aetherGallery') || '[]');
+            gallery.splice(index, 1);
+            localStorage.setItem('aetherGallery', JSON.stringify(gallery));
+            loadGallery();
+        }
+    </script>
+</body>
+</html>
